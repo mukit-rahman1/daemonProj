@@ -4,7 +4,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <string>
-#include "rt_sched.hpp"
+#include "rt_sched.h"
 
 //runtime settings
 struct Config {
@@ -14,6 +14,7 @@ struct Config {
   RtPolicy policy = RtPolicy::Other;
   int prio = 80;      // used for FIFO/RR
   bool mlock = false; // mlockall
+  std::string pidfile = "/tmp/rtmond.pid";
 };
 
 static inline bool streq(const char* a, const char* b) { return std::strcmp(a,b)==0; }
@@ -79,6 +80,11 @@ static inline Config parse_args(int argc, char** argv) {
 
     } else if (streq(argv[i],"--mlock")) {
       c.mlock = true;
+
+    } else if (streq(argv[i],"--pidfile")) {
+      
+      if (i+1>=argc) { usage(argv[0]); std::exit(2); }
+      c.pidfile = argv[++i];
 
     } else {
       std::fprintf(stderr,"Unknown arg: %s\n", argv[i]);

@@ -5,13 +5,11 @@
 #include <cinttypes>
 #include <ctime>
 
-#include "rt_config.hpp"
-#include "time_utils.hpp"
-#include "stats.hpp"
-#include "rt_sched.hpp"
-
-static volatile std::sig_atomic_t g_stop = 0;
-static void on_sig(int){ g_stop = 1; }
+#include "rt_config.h"
+#include "time_utils.h"
+#include "stats.h"
+#include "rt_sched.h"
+#include "pid_file.h"
 
 /*
 prevent page swapping
@@ -22,14 +20,42 @@ While loop (until ctrl c detect)
 monotonic clock set sleep till next wakup
 measure
 update
+handle control flags
 print
 */
 
+//globals for each interrupt
+static volatile std::sig_atomic_t g_stop = 0;
+static volatile std::sig_atomic_t g_reset = 0;
+static volatile std::sig_atomic_t g_snapshot = 0;
+
+static void on_sigterm(int){ g_stop = 1; }
+static void on_sigusr1(int){ g_reset = 1; }
+static void on_sigusr2(int){ g_snapshot = 1; }
+static void print_snapshot(const Config& cfg, const Stats& st) {
+  std::printf("rtmond: SNAPSHOT rate=%dHz policy=%s prio=%d samples=%" PRIu64
+              " jitter_ns(min/avg/max)=(%" PRId64 "/%.1Lf/%" PRId64 ") misses=%" PRIu64 "\n",
+              cfg.rate_hz, policy_name(cfg.policy), cfg.prio,
+              st.samples, st.min_or0(), st.avg(), st.max_or0(), st.misses);
+  std::fflush(stdout);
+}
+
+
 int main(int argc, char** argv) {
-  std::signal(SIGINT, on_sig);
-  std::signal(SIGTERM, on_sig);
+  std::signal(SIGINT, on_sigterm);
+  std::signal(SIGTERM, on_sigterm);
+  std::signal(SIGUSR1, on_sigusr1); // reset
+  std::signal(SIGUSR2, on_sigusr2); // snapshot
 
   Config cfg = parse_args(argc, argv);
+
+  //create pidfile
+  PidFile pf;
+  if (!pf.create(cfg.pidfile)) {
+    std::fprintf(stderr, "rtmond: failed to create pidfile '%s': %s\n",
+                 cfg.pidfile.c_str(), std::strerror(errno));
+    return 1;
+  }
 
   //prevent pages from getting swapped
   try_mlockall(cfg.mlock);
@@ -79,6 +105,21 @@ int main(int argc, char** argv) {
 
     //report every ns. time spec to nano
     const int64_t cur_ns = ts_to_ns(actual);
+
+     //handle control flags in the main thread (signal-safe)
+    if (g_reset) {
+      g_reset = 0;
+      st.reset();
+      last_report_ns = cur_ns;
+      std::printf("rtmonitord: RESET\n");
+      std::fflush(stdout);
+    }
+    if (g_snapshot) {
+      g_snapshot = 0;
+      print_snapshot(cfg, st);
+    }
+
+
     if (cur_ns - last_report_ns >= report_every_ns) {
       std::printf("rtmond: samples=%" PRIu64 " jitter_ns(min/avg/max)=(%" PRId64 "/%.1Lf/%" PRId64 ") misses=%" PRIu64 "\n",
                   st.samples, st.min_or0(), st.avg(), st.max_or0(), st.misses);
