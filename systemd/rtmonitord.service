@@ -5,12 +5,12 @@ After=multi-user.target
 [Service]
 Type=simple
 
-# Create /run/rtmond/ at start (tmpfs runtime dir)
-RuntimeDirectory=rtmond
+# Create /run/rtmonitord/ at start (tmpfs runtime dir)
+RuntimeDirectory=rtmonitord
 RuntimeDirectoryMode=0755
 
 # Start the daemon (journald captures stdout/stderr)
-ExecStart=/usr/local/bin/rtmond --rate 1000 --policy rr --prio 80 --mlock --pidfile /run/rtmond/rtmond.pid
+ExecStart=/usr/local/bin/rtmonitord --rate 1000 --policy rr --prio 80 --mlock --pidfile /run/rtmonitord/rtmonitord.pid
 
 # Restart on crash
 Restart=on-failure
