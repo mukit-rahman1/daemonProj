@@ -1,0 +1,33 @@
+[Unit]
+Description=Real-time jitter monitor daemon (rtmonitord)
+After=multi-user.target
+
+[Service]
+Type=simple
+
+# Create /run/rtmond/ at start (tmpfs runtime dir)
+RuntimeDirectory=rtmond
+RuntimeDirectoryMode=0755
+
+# Start the daemon (journald captures stdout/stderr)
+ExecStart=/usr/local/bin/rtmond --rate 1000 --policy rr --prio 80 --mlock --pidfile /run/rtmond/rtmond.pid
+
+# Restart on crash
+Restart=on-failure
+RestartSec=0.2
+
+# Send SIGTERM on stop (your daemon handles SIGTERM)
+KillSignal=SIGTERM
+TimeoutStopSec=2
+
+# Easiest for RT scheduling/locking memory: run as root.
+User=root
+
+# Optional hardening (safe, but keep simple for now)
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target
