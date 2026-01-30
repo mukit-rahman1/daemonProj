@@ -8,7 +8,7 @@ A small Linux jitter monitoring daemon.
 > Notes:
 > - This project uses **signals + pidfile** for control (no networking).
 > - For `--policy rr/fifo` and `--mlock`: you usually need **root**
-![img]()
+![img](https://github.com/mukit-rahman1/daemonProj/blob/main/Screenshot%202026-01-29%20at%201.16.55%E2%80%AFPM.png?raw=true)
 # Installation  
 
 ## 1) Build  
