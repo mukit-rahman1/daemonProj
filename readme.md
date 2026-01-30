@@ -1,4 +1,4 @@
-# Real Time Jitter Montior (rtmonitord + rtctl)
+# Real Time Jitter Montior (rtmonitord + rtctl + libnotify)
 
 A small Linux jitter monitoring daemon.
 - `rtmonitord`: runs a periodic timer loop, measures wakeup jitter, prints stats
@@ -8,7 +8,7 @@ A small Linux jitter monitoring daemon.
 > Notes:
 > - This project uses **signals + pidfile** for control (no networking).
 > - For `--policy rr/fifo` and `--mlock`: you usually need **root**
-
+![img]()
 # Installation  
 
 ## 1) Build  
