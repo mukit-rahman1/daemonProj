@@ -25,7 +25,7 @@ static void usage(const char* prog) {
     "  status  -> SIGUSR2 (daemon prints snapshot to journald/stdout)\n"
     "  stop    -> SIGTERM (graceful exit)\n"
     "\n"
-    "Default pidfile: /tmp/rtmonitord.pid\n",
+    "Default pidfile: /run/rtmonitord/rtmonitord.pid\n",
     prog
   );
 }
@@ -40,7 +40,7 @@ static pid_t read_pidfile(const std::string& path) {
 }
 
 int main(int argc, char** argv) {
-  std::string pidfile = "/tmp/rtmonitord.pid";
+  std::string pidfile = "/run/rtmonitord/rtmonitord.pid";
   std::string cmd;
 
   //get args

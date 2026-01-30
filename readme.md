@@ -3,6 +3,7 @@
 A small Linux jitter monitoring daemon.
 - `rtmonitord`: runs a periodic timer loop, measures wakeup jitter, prints stats
 - `rtctl`: controls `rtmonitord` locally via signals (reset/status/stop)
+- Done on a wayland session in Arch Linux
 
 > Notes:
 > - This project uses **signals + pidfile** for control (no networking).
@@ -30,7 +31,19 @@ sudo systemctl daemon-reload
 ```bash
 sudo systemctl enable --now rtmonitord
 ```
+## 5) Set Up Desktop pop up
+DBUS setup (might need to install a different one if not on Wayland)
+```
+sudo pacman -S mako libnotify
+mako &
+./build/rtnotify
+```
+
 # Usage  
+## Reset Stats Count
+```
+sudo rtctl --pidfile /run/rtmonitord/rtmonitord.pid reset
+```
 ## View logs (jitter stats go here)
 ```bash
 journalctl -u rtmonitord -f  

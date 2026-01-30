@@ -6,6 +6,8 @@
 #include <string>
 #include "rt_sched.h"
 
+
+
 //runtime settings
 struct Config {
   int rate_hz = 100;
@@ -15,14 +17,17 @@ struct Config {
   int prio = 80;      // used for FIFO/RR
   bool mlock = false; // mlockall
   std::string pidfile = "/tmp/rtmond.pid";
+  //stats for desktop pop up
+  std::string stats_out = "/run/rtmonitord/rtmonitord.stats";  
 };
 
 static inline bool streq(const char* a, const char* b) { return std::strcmp(a,b)==0; }
 
 static inline void usage(const char* prog) {
   std::fprintf(stderr,
-    "Usage: %s [--rate HZ] [--report-ms MS] [--miss-us USEC]\n"
-    "          [--policy other|fifo|rr] [--prio N] [--mlock]\n"
+    "Usage: %s  [--rate HZ] [--report-ms MS] [--miss-us USEC]\n"
+    "           [--policy other|fifo|rr] [--prio N] [--mlock]\n"
+    "           [--pidfile PATH] [--stats-out PATH]\ns"
     "\n"
     "Examples:\n"
     "  %s --rate 1000 --policy rr --prio 80 --mlock\n"
@@ -86,10 +91,15 @@ static inline Config parse_args(int argc, char** argv) {
       if (i+1>=argc) { usage(argv[0]); std::exit(2); }
       c.pidfile = argv[++i];
 
-    } else {
+    } else if (streq(argv[i], "--stats-out")) {
+      if (i+1>=argc) { usage(argv[0]); std::exit(2); }
+      c.stats_out = argv[++i];
+    }else {
       std::fprintf(stderr,"Unknown arg: %s\n", argv[i]);
       usage(argv[0]); std::exit(2);
     }
   }
   return c;
 }
+
+

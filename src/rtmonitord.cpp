@@ -10,6 +10,7 @@
 #include "stats.h"
 #include "rt_sched.h"
 #include "pid_file.h"
+#include "stats_out.h"
 
 /*
 prevent page swapping
@@ -33,11 +34,12 @@ static void on_sigterm(int){ g_stop = 1; }
 static void on_sigusr1(int){ g_reset = 1; }
 static void on_sigusr2(int){ g_snapshot = 1; }
 static void print_snapshot(const Config& cfg, const Stats& st) {
-  std::printf("rtmond: SNAPSHOT rate=%dHz policy=%s prio=%d samples=%" PRIu64
+  std::printf("rtmonitord: SNAPSHOT rate=%dHz policy=%s prio=%d samples=%" PRIu64
               " jitter_ns(min/avg/max)=(%" PRId64 "/%.1Lf/%" PRId64 ") misses=%" PRIu64 "\n",
               cfg.rate_hz, policy_name(cfg.policy), cfg.prio,
               st.samples, st.min_or0(), st.avg(), st.max_or0(), st.misses);
   std::fflush(stdout);
+  write_stats_out(cfg, st);
 }
 
 
@@ -52,7 +54,7 @@ int main(int argc, char** argv) {
   //create pidfile
   PidFile pf;
   if (!pf.create(cfg.pidfile)) {
-    std::fprintf(stderr, "rtmond: failed to create pidfile '%s': %s\n",
+    std::fprintf(stderr, "rtmonitord: failed to create pidfile '%s': %s\n",
                  cfg.pidfile.c_str(), std::strerror(errno));
     return 1;
   }
@@ -68,7 +70,7 @@ int main(int argc, char** argv) {
   //starting time stamp
   timespec now{};
   if (clock_gettime(CLOCK_MONOTONIC, &now) != 0) {
-    std::fprintf(stderr, "rtmond: clock_gettime failed: %s\n", std::strerror(errno));
+    std::fprintf(stderr, "rtmonitord: clock_gettime failed: %s\n", std::strerror(errno));
     return 1;
   }
 
@@ -77,7 +79,7 @@ int main(int argc, char** argv) {
 
   Stats st{};
 
-  std::printf("rtmond: rate=%dHz period=%" PRId64 "ns miss=%" PRId64 "ns report=%dms policy=%s prio=%d mlock=%d\n",
+  std::printf("rtmonitord: rate=%dHz period=%" PRId64 "ns miss=%" PRId64 "ns report=%dms policy=%s prio=%d mlock=%d\n",
               cfg.rate_hz, period_ns, cfg.miss_threshold_ns, cfg.report_every_ms,
               policy_name(cfg.policy), cfg.prio, cfg.mlock ? 1 : 0);
   std::fflush(stdout);
@@ -87,7 +89,7 @@ int main(int argc, char** argv) {
     //monotonic clock. sleep until next scheduled wake up
     int rc = clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next, nullptr);
     if (rc != 0 && rc != EINTR) {
-      std::fprintf(stderr, "rtmond: clock_nanosleep failed: %s\n", std::strerror(rc));
+      std::fprintf(stderr, "rtmonitord: clock_nanosleep failed: %s\n", std::strerror(rc));
       return 1;
     }
     if (g_stop) break;
@@ -95,7 +97,7 @@ int main(int argc, char** argv) {
     //measure
     timespec actual{};
     if (clock_gettime(CLOCK_MONOTONIC, &actual) != 0) {
-      std::fprintf(stderr, "rtmond: clock_gettime failed: %s\n", std::strerror(errno));
+      std::fprintf(stderr, "rtmonitord: clock_gettime failed: %s\n", std::strerror(errno));
       return 1;
     }
 
@@ -111,6 +113,7 @@ int main(int argc, char** argv) {
       g_reset = 0;
       st.reset();
       last_report_ns = cur_ns;
+      write_stats_out(cfg, st);
       std::printf("rtmonitord: RESET\n");
       std::fflush(stdout);
     }
@@ -121,17 +124,18 @@ int main(int argc, char** argv) {
 
 
     if (cur_ns - last_report_ns >= report_every_ns) {
-      std::printf("rtmond: samples=%" PRIu64 " jitter_ns(min/avg/max)=(%" PRId64 "/%.1Lf/%" PRId64 ") misses=%" PRIu64 "\n",
+      std::printf("rtmonitord: samples=%" PRIu64 " jitter_ns(min/avg/max)=(%" PRId64 "/%.1Lf/%" PRId64 ") misses=%" PRIu64 "\n",
                   st.samples, st.min_or0(), st.avg(), st.max_or0(), st.misses);
       std::fflush(stdout);
       last_report_ns = cur_ns;
+      write_stats_out(cfg, st);
     }
 
     next = add_ns(next, period_ns);
   }
 
   //print stats
-  std::printf("rtmond: STOP samples=%" PRIu64 " jitter_ns(min/avg/max)=(%" PRId64 "/%.1Lf/%" PRId64 ") misses=%" PRIu64 "\n",
+  std::printf("rtmonitord: STOP samples=%" PRIu64 " jitter_ns(min/avg/max)=(%" PRId64 "/%.1Lf/%" PRId64 ") misses=%" PRIu64 "\n",
               st.samples, st.min_or0(), st.avg(), st.max_or0(), st.misses);
   std::fflush(stdout);
   return 0;

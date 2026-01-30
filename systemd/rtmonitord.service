@@ -10,7 +10,7 @@ RuntimeDirectory=rtmonitord
 RuntimeDirectoryMode=0755
 
 # Start the daemon (journald captures stdout/stderr)
-ExecStart=/usr/local/bin/rtmonitord --rate 1000 --policy rr --prio 80 --mlock --pidfile /run/rtmonitord/rtmonitord.pid
+ExecStart=/usr/local/bin/rtmonitord --rate 1000 --policy rr --prio 80 --mlock --pidfile /run/rtmonitord/rtmonitord.pid --stats-out /run/rtmonitord/rtmonitord.stats
 
 # Restart on crash
 Restart=on-failure
