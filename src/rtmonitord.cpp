@@ -1,9 +1,9 @@
-#include <csignal>
-#include <cstdio>
-#include <cstring>
-#include <cerrno>
-#include <cinttypes>
-#include <ctime>
+#include <csignal> //interrupt signal to function
+#include <cstdio> //file writing and reading
+#include <cstring> //std:string
+#include <cerrno> //err number
+#include <cinttypes>  //uint64_t, int64_t
+#include <ctime> //time spec
 
 #include "rt_config.h"
 #include "time_utils.h"
@@ -33,6 +33,8 @@ static volatile std::sig_atomic_t g_snapshot = 0;
 static void on_sigterm(int){ g_stop = 1; }
 static void on_sigusr1(int){ g_reset = 1; }
 static void on_sigusr2(int){ g_snapshot = 1; }
+
+//helper for printing a snapshot
 static void print_snapshot(const Config& cfg, const Stats& st) {
   std::printf("rtmonitord: SNAPSHOT rate=%dHz policy=%s prio=%d samples=%" PRIu64
               " jitter_ns(min/avg/max)=(%" PRId64 "/%.1Lf/%" PRId64 ") misses=%" PRIu64 "\n",
@@ -44,12 +46,12 @@ static void print_snapshot(const Config& cfg, const Stats& st) {
 
 
 int main(int argc, char** argv) {
-  std::signal(SIGINT, on_sigterm);
-  std::signal(SIGTERM, on_sigterm);
+  std::signal(SIGINT, on_sigterm); // ctrl + C
+  std::signal(SIGTERM, on_sigterm); // ctrl + C
   std::signal(SIGUSR1, on_sigusr1); // reset
   std::signal(SIGUSR2, on_sigusr2); // snapshot
 
-  Config cfg = parse_args(argc, argv);
+  Config cfg = parse_args(argc, argv); //parse for runtime settings
 
   //create pidfile
   PidFile pf;
@@ -117,12 +119,13 @@ int main(int argc, char** argv) {
       std::printf("rtmonitord: RESET\n");
       std::fflush(stdout);
     }
-    if (g_snapshot) {
+    //print in terminal and stats file for rtctl status
+    if (g_snapshot) { 
       g_snapshot = 0;
       print_snapshot(cfg, st);
     }
 
-
+    //periodic logging
     if (cur_ns - last_report_ns >= report_every_ns) {
       std::printf("rtmonitord: samples=%" PRIu64 " jitter_ns(min/avg/max)=(%" PRId64 "/%.1Lf/%" PRId64 ") misses=%" PRIu64 "\n",
                   st.samples, st.min_or0(), st.avg(), st.max_or0(), st.misses);
