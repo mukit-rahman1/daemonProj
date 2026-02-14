@@ -1,14 +1,14 @@
 #pragma once
-#include <cstdint>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-#include <string>
-#include "rt_sched.h"
+#include <cstdint> //int64_t
+#include <cstdio> //fprintf and other file functions
+#include <cstdlib> // string to number long converstions
+#include <cstring> //strcmp
+#include <string> //std::string for avoiding bugs
+#include "rt_sched.h" //scheduling helpers (for this daemon)
 
+//Helper file for runtime settings and command parsing
 
-
-//runtime settings
+//default runtime settings
 struct Config {
   int rate_hz = 100;
   int report_every_ms = 1000;
@@ -16,13 +16,15 @@ struct Config {
   RtPolicy policy = RtPolicy::Other;
   int prio = 80;      // used for FIFO/RR
   bool mlock = false; // mlockall
-  std::string pidfile = "/tmp/rtmond.pid";
+  std::string pidfile = "/tmp/rtmonitord.pid";
   //stats for desktop pop up
   std::string stats_out = "/run/rtmonitord/rtmonitord.stats";  
 };
 
+//helper to make if statements cleaner
 static inline bool streq(const char* a, const char* b) { return std::strcmp(a,b)==0; }
 
+//function for help or incorrect usages
 static inline void usage(const char* prog) {
   std::fprintf(stderr,
     "Usage: %s  [--rate HZ] [--report-ms MS] [--miss-us USEC]\n"
@@ -34,6 +36,8 @@ static inline void usage(const char* prog) {
     "  %s --rate 200 --policy fifo --prio 90\n",
     prog, prog, prog);
 }
+
+//parsing all flags
 
 static inline bool parse_int(const char* s, int& out) {
   char* end=nullptr; long v=std::strtol(s,&end,10);
@@ -54,6 +58,7 @@ static inline RtPolicy parse_policy(const char* s) {
   return RtPolicy::Other;
 }
 
+//check for all possible flags. Rate freq, report freq, miss us, scheduling policy, scheduling prio, mlock(lock pages), pidfil dir, stats out dir
 static inline Config parse_args(int argc, char** argv) {
   Config c{};
   for (int i=1;i<argc;i++) {
