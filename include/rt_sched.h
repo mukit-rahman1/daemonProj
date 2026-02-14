@@ -1,6 +1,6 @@
 #pragma once
 #include <cerrno> //get err code from posix
-#include <cstring> //help explain err
+#include <cstring>
 #include <cstdio> 
 #include <pthread.h> //posix
 #include <sched.h> //sched policies
